@@ -384,51 +384,49 @@ if ( ! class_exists( 'acf_field_repeater' ) ) :
 		 * @return array  $value The modified value.
 		 */
 		public function format_value( $value, $post_id, $field, $escape_html = false ) {
-			// bail early if no value
-			if ( empty( $value ) ) {
-				return false;
-			}
-
-			// bail early if not array
-			if ( ! is_array( $value ) ) {
-				return false;
-			}
-
-			// bail early if no sub fields
-			if ( empty( $field['sub_fields'] ) ) {
-				return false;
-			}
-
-			// loop over rows
-			foreach ( array_keys( $value ) as $i ) {
-
-				// loop through sub fields
-				foreach ( array_keys( $field['sub_fields'] ) as $j ) {
-
-					// get sub field
-					$sub_field = $field['sub_fields'][ $j ];
-
-					// bail early if no name (tab)
-					if ( acf_is_empty( $sub_field['name'] ) ) {
-						continue;
-					}
-
-					// extract value
-					$sub_value = acf_extract_var( $value[ $i ], $sub_field['key'] );
-
-					// update $sub_field name
-					$sub_field['name'] = "{$field['name']}_{$i}_{$sub_field['name']}";
-
-					// format value
-					$sub_value = acf_format_value( $sub_value, $post_id, $sub_field, $escape_html );
-
-					// append to $row
-					$value[ $i ][ $sub_field['_name'] ] = $sub_value;
-				}
-			}
-
-			return $value;
-		}
+            // bail early if no value or not array
+            if ( empty( $value ) || ! is_array( $value ) ) {
+                return array(); // safer than false
+            }
+        
+            // bail early if no sub fields
+            if ( empty( $field['sub_fields'] ) || ! is_array( $field['sub_fields'] ) ) {
+                return $value;
+            }
+        
+            // loop over rows
+            foreach ( $value as $i => $row ) {
+        
+                // skip if row is not an array
+                if ( ! is_array( $row ) ) {
+                    continue;
+                }
+        
+                // loop through sub fields
+                foreach ( $field['sub_fields'] as $sub_field ) {
+        
+                    // skip if sub field has no name
+                    if ( acf_is_empty( $sub_field['name'] ) ) {
+                        continue;
+                    }
+        
+                    // extract value
+                    $sub_value = isset( $row[ $sub_field['key'] ] ) ? $row[ $sub_field['key'] ] : null;
+        
+                    // update $sub_field name
+                    $sub_field['name'] = "{$field['name']}_{$i}_{$sub_field['name']}";
+        
+                    // format value
+                    $sub_value = acf_format_value( $sub_value, $post_id, $sub_field, $escape_html );
+        
+                    // append to row using safe key
+                    $key = isset( $sub_field['_name'] ) ? $sub_field['_name'] : $sub_field['name'];
+                    $value[ $i ][ $key ] = $sub_value;
+                }
+            }
+        
+            return $value;
+        }
 
 		/**
 		 * Validates values for the repeater field
